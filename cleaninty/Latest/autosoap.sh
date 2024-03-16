@@ -1,121 +1,59 @@
 #!/usr/bin/env bash
 
+# check_catch_counter(): Runs a command while capturing and echoing everything output to stderr, then gives a status update and optionally halts on errors.
+# Arguments:
+# $1 (string): Command to be tried.
+# $2 (string): Description of command's purpose.
+# $3 (bool): Whether or not to halt on failure. 
+
+check_catch_counter() {
+    error=$($1 2>&1 >/dev/null)
+    if [[ "$error" != "" ]]; then
+        echo "$2 failed, causing the following error:"
+        echo "$error"
+        if [[ "$3" == "1" ]]; then
+            exit 2
+        else
+            echo "Continuing anyway."
+            return 1
+        fi
+    else
+        echo "$2 succeeded."
+        return 0
+    fi
+}
 latestexefs=$(ls ./*.exefs)
 latestexefs=${latestexefs:2}
 latestjson=${latestexefs:0:-6}.json
 dd if="$latestexefs" of="otp.bin" bs=1 skip=3072 count=256 status=none
 dd if="$latestexefs" of="secinfo.bin" bs=1 skip=1024 count=273 status=none
-if ! cleaninty ctr GenJson --otp otp.bin --secureinfo secinfo.bin --region JPN --country jp --out "$latestjson" | grep -q "Complete!"; then echo "The target's json could not be compiled. Check whether your constants are set up correctly and if the exefs_mount folder has anything in it." && exit 2; fi
-cleaninty ctr CheckReg --console "$latestjson"
+check_catch_counter "cleaninty ctr GenJson --otp otp.bin --secureinfo secinfo.bin --region JPN --country jp --out $latestjson" "Compiling a json from $latestexefs" "1"
+check_catch_counter "cleaninty ctr CheckReg --console $latestjson" "Checking $latestjson's eShop data" "1"
 jsonregion=$(grep -oP '(?<="region": ")[A-Z]{3}(?=",)' <"$latestjson")
 jsoncountry=$(grep -oP '(?<="country": ")[A-Z]{2}(?=",)' <"$latestjson")
 jsonlanguage=$(grep -oP '(?<="language": ")[a-z]{2}(?=",)' <"$latestjson")
 echo "Current JSON's region: $jsonregion"
 rm -f otp.bin secinfo.bin
 
-clear
-while true; do
-    printf "Current JSON: %s\nCurrent JSON's region: %s\nPlease select the region to change to: (USA, EUR, JPN, CHN, KOR, TWN)\n>" "$latestjson" "$jsonregion"
-    read -p "Region: " -n 3 regionchange && printf "\n"
-    regionchange="${regionchange^^}"
-    if [[ "$regionchange" =~ ^(USA|EUR|JPN|CHN|KOR|TWN) ]]; then
-        if [[ "$regionchange" != "$jsonregion" ]]; then
-            echo "Valid region selected. Changing from $jsonregion to $regionchange."
-            break
-        else
-            echo "You cannot change to the same region. Please choose a different one."
-            continue
-        fi
-    else
-        echo "Invalid region. Please choose a valid region."
-        continue
-    fi
-done
-
-if [[ "$regionchange" =~ ^((USA|EUR|TWN)) ]]; then
-    validcountry=0
-    while [[ "$validcountry" == 0 ]]; do
-        echo "Please select the country to change to:"
-        case "$regionchange" in
-        "USA")
-            echo "Valid countries: AI, AG, AR, AW, BS, BB, BZ, BM, BO, BR, VG, CA, KY, CL, CO, CR, DM, DO, EC, SV, GF, GD, GP, GT, GY, HT, HN, JM, MY, MQ, MX, MS, AN, NI, PA, PY, PE, SA, SG, KN, LC, VC, SR, TT, TC, AE, US, UY, VI, VE"
-            echo "If you are unsure, pick US."
-            ;;
-        "EUR")
-            echo "Valid countries: AL, AD, AU, AT, AZ, BE, BA, BW, BG, TD, HR, CY, CZ, DK, DJ, ER, EE, FI, FR, DE, GI, GR, GG, HU, IS, IN, IE, IM, IT, JE, LV, LS, LI, LT, LU, MK, ML, MT, MR, MC, ME, MZ, NA, NL, NZ, NE, NO, PL, PT, RO, RU, SM, RS, SK, SI, SO, ZA, ES, SD, SZ, SE, CH, TR, GB, VA, ZM, ZW"
-            ;;
-        "TWN")
-            echo "Valid countries: TW, HK"
-            ;;
-        *)
-            echo "The chosen region was not found. This should not be possible."
-            exit 2
-            ;;
-        esac
-        read -p "Country: " -n 2 countrychange && printf "\n"
-        countrychange="${countrychange^^}"
-        case "$regionchange" in
-        "USA")
-            if [[ "$countrychange" =~ ^(AI|AG|AR|AW|BS|BB|BZ|BM|BO|BR|VG|CA|KY|CL|CO|CR|DM|DO|EC|SV|GF|GD|GP|GT|GY|HT|HN|JM|MY|MQ|MX|MS|AN|NI|PA|PY|PE|SA|SG|KN|LC|VC|SR|TT|TC|AE|US|UY|VI|VE) ]]; then
-                validcountry=1
-                languagechange=en
-                echo "Country and language set to $countrychange $languagechange."
-            else
-                echo "Invalid country for this region. Please choose a valid country."
-            fi
-            ;;
-        "EUR")
-            if [[ "$countrychange" =~ ^(AL|AD|AU|AT|AZ|BE|BA|BW|BG|TD|HR|CY|CZ|DK|DJ|ER|EE|FI|FR|DE|GI|GR|GG|HU|IS|IN|IE|IM|IT|JE|LV|LS|LI|LT|LU|MK|ML|MT|MR|MC|ME|MZ|NA|NL|NZ|NE|NO|PL|PT|RO|RU|SM|RS|SK|SI|SO|ZA|ES|SD|SZ|SE|CH|TR|GB|VA|ZM|ZW) ]]; then
-                validcountry=1
-                languagechange=en
-                echo "Country and language set to $countrychange $languagechange."
-            else
-                echo -n "Invalid country for this region. Please choose a valid country."
-            fi
-            ;;
-        "TWN")
-            if [[ "$countrychange" =~ ^(TW|HK) ]]; then
-                validcountry=1
-                languagechange=zh
-                echo "Country and language set to $countrychange $languagechange."
-            else
-                echo -n "Invalid country for this region. Please choose a valid country."
-            fi
-            ;;
-        *)
-            echo -n "The chosen region was not found. This should not be possible."
-            exit 2
-            ;;
-        esac
-    done
+if [[ "$jsonregion" == "USA" ]]; then
+    regionchange=JPN
 else
-    case "$regionchange" in
-    "JPN")
-        countrychange=JP
-        languagechange=ja
-        echo "Country and language set to $countrychange $languagechange."
-        ;;
-    "KOR")
-        countrychange=KOR
-        languagechange=ko
-        echo "Country and language set to $countrychange $languagechange."
-        ;;
-    "CHN")
-        countrychange=CHN
-        languagechange=zh
-        echo "Country and language set to $countrychange $languagechange."
-        ;;
-    *)
-        echo "The chosen region was not found. This should not be possible."
-        exit 2
-        ;;
-    esac
+    regionchange=USA
+fi
+
+if [[ "$regionchange" == USA ]]; then
+    countrychange=US
+    languagechange=en
+else
+    countrychange=JP
+    languagechange=ja
 fi
 
 echo "Processing..."
 
 if cleaninty ctr EShopRegionChange --console "$latestjson" --region "$regionchange" --country "$countrychange" --language "$languagechange" | grep -q "Complete!"; then
     echo "Region change successful. No system transfer was required."
+    check_catch_counter "cleaninty ctr EShopDelete --console $latestjson" "Deleting $latestjson's eShop account" "1"
     if ! mv -f "$latestjson" ../Recipients; then
         echo "Recipients folder not found. Creating it now..."
         mkdir ../Recipients
@@ -129,7 +67,7 @@ if cleaninty ctr EShopRegionChange --console "$latestjson" --region "$regionchan
 else
     printf "\n\n\n\n\n\n\n\nRegion change failed. A system transfer is required.\nChoose a donor's .json from the following list, or choose Auto to try all of them in order.\n"
     if ! cd ../Donors; then
-        echo "Donors folder not found. Please obtain files from donor consoles and then try again."
+        echo "Donors folder not found. Please obtain the lamb sauce and files from donor consoles, then try again."
         exit 1
     fi
     touch "Auto"
@@ -143,13 +81,13 @@ else
                     break
                 else
                     echo "$donor is off cooldown, but is the wrong region. Changing automatically..."
-                    if cleaninty ctr EShopRegionChange --console "$donor" --region "$jsonregion" --country "$jsoncountry" --language "$jsonlanguage" | grep -q "Complete!"; then
+                    if check_catch_counter "cleaninty ctr EShopRegionChange --console $donor --region $jsonregion --country $jsoncountry --language $jsonlanguage" "Changing $donor's eShop region" "0"; then
                         echo "Region change to $jsonregion successful. $donor has been selected."
                         donorchoice="$donor"
                         break
                     else
-                        echo "Changing region failed. You should manually check whether $donor has region-locked tickets."
                         echo "Please select a different donor."
+                        printf "\n\n\n"
                         continue
                     fi
                 fi
@@ -180,13 +118,13 @@ else
                     break
                 else
                     echo "$donor is off cooldown, but is the wrong region. Changing automatically..."
-                    if cleaninty ctr EShopRegionChange --console "$donor" --region "$jsonregion" --country "$jsoncountry" --language "$jsonlanguage" | grep -q "Complete!"; then
+                    if check_catch_counter "cleaninty ctr EShopRegionChange --console $donor --region $jsonregion --country $jsoncountry --language $jsonlanguage" "Changing $donor's eShop region" "0"; then
                         echo "Region change to $jsonregion successful. $donor has been selected."
                         donorchoice="$donor"
                         break
                     else
-                        echo "Changing region failed. You should manually check whether $donor has region-locked tickets."
                         echo "Moving to next donor..."
+                        print "\n\n\n"
                         continue
                     fi
                 fi
@@ -197,8 +135,8 @@ else
         done
         if [[ "$autodonorchoice" != "none" ]]; then
             cd ../Latest || exit 1
-            cleaninty ctr SysTransfer --source "$latestjson" --target ../Donors/"$autodonorchoice"
-            cleaninty ctr EShopRegionChange --console "$latestjson" --region "$regionchange" --country "$countrychange" --language "$languagechange"
+            check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$autodonorchoice" "Transferring from $autodonorchoice to $latestjson" "1"
+            echo "SOAP Transfer complete!"
             if ! mv -f "$latestjson" ../Recipients; then
                 echo "Recipients folder not found. Creating it now..."
                 mkdir ../Recipients
@@ -210,13 +148,13 @@ else
             fi
             exit 0
         else
-            echo "All donors are currently on cooldown. Please try again later."
+            echo "All donors are currently on cooldown. Please find the lamb sauce and try again later."
             exit 2
         fi
     else
         cd ../Latest || exit 1
-        if cleaninty ctr SysTransfer --source "$latestjson" --target ../Donors/"$donorchoice" | grep -q "Complete!"; then echo "System transfer successful."; else echo "System transfer from $latestjson to $donorchoice failed." && exit 2; fi
-        if cleaninty ctr EShopRegionChange --console "$latestjson" --region "$regionchange" --country "$countrychange" --language "$languagechange" | grep -q "Complete!"; then echo "Region change successful."; else echo "Changing region of $latestjson failed. This should not be possible." && exit 2; fi
+        check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $donorchoice to $latestjson" "1"
+        echo "SOAP transfer complete!"
         if ! mv -f -t ../Recipients "$latestjson"; then
             echo "Recipients folder not found. Creating it now..."
             mkdir ../Recipients
