@@ -135,7 +135,7 @@ else
         done
         if [[ "$autodonorchoice" != "none" ]]; then
             cd ../Latest || exit 1
-            check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$autodonorchoice" "Transferring from $autodonorchoice to $latestjson" "1"
+            check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$autodonorchoice" "Transferring from $latestjson to $autodonorchoice" "1"
             echo "SOAP Transfer complete!"
             if ! mv -f "$latestjson" ../Recipients; then
                 echo "Recipients folder not found. Creating it now..."
@@ -153,7 +153,7 @@ else
         fi
     else
         cd ../Latest || exit 1
-        check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $donorchoice to $latestjson" "1"
+        check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $latestjson to $autodonorchoice" "1"
         echo "SOAP transfer complete!"
         if ! mv -f -t ../Recipients "$latestjson"; then
             echo "Recipients folder not found. Creating it now..."
