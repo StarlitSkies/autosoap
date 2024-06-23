@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 
-# check_catch_counter(): Runs a command while capturing and echoing everything output to stderr, then gives a status update and optionally halts on errors.
-# Arguments:
-# $1 (string): Command to be tried.
-# $2 (string): Description of command's purpose.
-# $3 (bool): Whether or not to halt on failure. 
+# check_catch_counter(): Runs a command and only outputs errors (if there are any), then gives a status update and optionally halts if an error was detected.
+# Takes three parameters. $1 (string): Command to be executed. $2 (string): Description of command's purpose. $3 (bool): Whether or not to halt on failure.
 
 check_catch_counter() {
-    error=$($1 2>&1 >/dev/null)
-    if [[ "$error" != "" ]]; then
+    local exit_on_fail=${3:-1} # Always halt on errors unless manually specified
+    local error=$($1 2>&1 >/dev/null)
+
+    if [[ -n "$error" ]]; then
         echo "$2 failed, causing the following error:"
         echo "$error"
-        if [[ "$3" == "1" ]]; then
+        if [[ "$exit_on_fail" -eq "1" ]]; then
+            echo "Halting execution due to the above error."
             exit 2
         else
-            echo "Continuing anyway."
+            echo "The above error has been marked as non-fatal. Continuing operation."
             return 1
         fi
     else
