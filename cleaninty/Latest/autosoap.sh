@@ -52,7 +52,8 @@ fi
 echo "Processing..."
 
 if cleaninty ctr EShopRegionChange --console "$latestjson" --region "$regionchange" --country "$countrychange" --language "$languagechange" | grep -q "Complete!"; then
-    echo "Region change successful. No system transfer was required."
+    echo "SOAP Transfer complete!"
+    echo "This console can perform a System Transfer immediately."
     check_catch_counter "cleaninty ctr EShopDelete --console $latestjson" "Deleting $latestjson's eShop account" "1"
     if ! mv -f "$latestjson" ../Recipients; then
         echo "Recipients folder not found. Creating it now..."
@@ -136,7 +137,9 @@ else
         if [[ "$autodonorchoice" != "none" ]]; then
             cd ../Latest || exit 1
             check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$autodonorchoice" "Transferring from $latestjson to $autodonorchoice" "1"
-            echo "SOAP Transfer complete!"
+            echo "SOAP Transfer complete! System Transfer cooldown now active."
+            cooldownexpiredate=$(date -d "+ 7 days" -u +"%a, %d %b %Y %T UTC")
+            echo "This console can do its next System Transfer at $cooldownexpiredate."
             if ! mv -f "$latestjson" ../Recipients; then
                 echo "Recipients folder not found. Creating it now..."
                 mkdir ../Recipients
@@ -154,7 +157,9 @@ else
     else
         cd ../Latest || exit 1
         check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $latestjson to $autodonorchoice" "1"
-        echo "SOAP transfer complete!"
+        echo "SOAP Transfer complete! System Transfer cooldown now active."
+        cooldownexpiredate=$(date -d "+ 7 days" -u +"%a, %d %b %Y %T UTC")
+        echo "This console can do its next System Transfer at $cooldownexpiredate."
         if ! mv -f -t ../Recipients "$latestjson"; then
             echo "Recipients folder not found. Creating it now..."
             mkdir ../Recipients
