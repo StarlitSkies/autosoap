@@ -160,7 +160,7 @@ else
         cd ../Latest || exit 1
         check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $latestjson to $donorchoice" "1"
         echo "SOAP Transfer complete! System Transfer cooldown now active."
-        cooldownexpiredate=$(date -d "+ 7 days" -u +"%a, %d %b %Y %T UTC")
+        cooldownexpiredate=$(date -d "+7 days" -u +"%A, %B %d (%F %T+00:00)")
         echo "This console can do its next System Transfer at $cooldownexpiredate."
         if ! mv -f -t ../Recipients "$latestjson"; then
             echo "Recipients folder not found. Creating it now..."
