@@ -4,8 +4,10 @@
 # Takes three parameters. $1 (string): Command to be executed. $2 (string): Description of command's purpose. $3 (bool): Whether or not to halt on failure.
 
 check_catch_counter() {
-    local exit_on_fail=${3:-1} # Always halt on errors unless manually specified
-    local error=$($1 2>&1 >/dev/null)
+    local exit_on_fail
+    exit_on_fail=${3:-1} # Always halt on errors unless manually specified
+    local error
+    error=$($1 2>&1 >/dev/null)
 
     if [[ -n "$error" ]]; then
         echo "$2 failed, causing the following error:"
@@ -121,7 +123,7 @@ else
                     echo "$donor is off cooldown, but is the wrong region. Changing automatically..."
                     if check_catch_counter "cleaninty ctr EShopRegionChange --console $donor --region $jsonregion --country $jsoncountry --language $jsonlanguage" "Changing $donor's eShop region" "0"; then
                         echo "Region change to $jsonregion successful. $donor has been selected."
-                        donorchoice="$donor"
+                        autodonorchoice="$donor"
                         break
                     else
                         echo "Moving to next donor..."
@@ -156,7 +158,7 @@ else
         fi
     else
         cd ../Latest || exit 1
-        check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $latestjson to $autodonorchoice" "1"
+        check_catch_counter "cleaninty ctr SysTransfer --source $latestjson --target ../Donors/$donorchoice" "Transferring from $latestjson to $donorchoice" "1"
         echo "SOAP Transfer complete! System Transfer cooldown now active."
         cooldownexpiredate=$(date -d "+ 7 days" -u +"%a, %d %b %Y %T UTC")
         echo "This console can do its next System Transfer at $cooldownexpiredate."
