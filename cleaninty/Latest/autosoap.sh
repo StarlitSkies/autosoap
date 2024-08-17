@@ -2,6 +2,7 @@
 
 # check_catch_counter(): Runs a command and only outputs errors (if there are any), then gives a status update and optionally halts if an error was detected.
 # Takes three parameters. $1 (string): Command to be executed. $2 (string): Description of command's purpose. $3 (bool): Whether or not to halt on failure.
+rm -rf *Zone.Identifier
 
 check_catch_counter() {
     local exit_on_fail
